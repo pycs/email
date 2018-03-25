@@ -8,6 +8,8 @@ import argparse
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 
+lexicon = {'technologies', 'party', 'hour'}
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -21,9 +23,32 @@ def main():
 
     emails = [mailparser.parse_from_file(x) for x in files]
     emails_json = [x.mail for x in emails]
+    emails_json = split_fields(emails_json)
+
+    for mail in emails_json:
+        mail['matches'] = lexicon_matches(mail)
 
     es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
     load_to_es(es, emails_json)
+
+
+def split_fields(emails_json):
+
+    def split_people(mail, field):
+        if(mail[field]):
+            mail[field + '_name'] = [x[0] for x in mail[field]]
+            mail[field + '_email'] = [x[1] for x in mail[field]]
+        return mail
+
+    emails_json = [split_people(mail, field)
+                   for mail in emails_json
+                   for field in set(mail.keys()).intersection({'from', 'to', 'cc'})]
+
+    return emails_json
+
+
+def lexicon_matches(mail):
+    return [w for w in lexicon if w in mail['body'].lower()]
 
 
 def load_to_es(es, emails_json):
