@@ -1,9 +1,10 @@
-import os
+# import os
 import glob
 # import mailbox
-import email
-import mailparser
+# import email
 import argparse
+
+import mailparser
 
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
@@ -11,10 +12,7 @@ from elasticsearch import helpers
 lexicon = {'technologies', 'party', 'hour'}
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('directory', help='input directory')
-    args = parser.parse_args()
+def main(args):
 
     # files = os.listdir(args.directory)
     files = glob.glob(args.directory + '/*.eml')
@@ -35,14 +33,15 @@ def main():
 def split_fields(emails_json):
 
     def split_people(mail, field):
-        if(mail[field]):
+        if mail[field]:
             mail[field + '_name'] = [x[0] for x in mail[field]]
             mail[field + '_email'] = [x[1] for x in mail[field]]
         return mail
 
     emails_json = [split_people(mail, field)
                    for mail in emails_json
-                   for field in set(mail.keys()).intersection({'from', 'to', 'cc'})]
+                   for field in
+                   set(mail.keys()).intersection({'from', 'to', 'cc'})]
 
     return emails_json
 
@@ -65,8 +64,10 @@ def load_to_es(es, emails_json):
 
     helpers.bulk(es, actions, index='emails', doc_type='email')
 
-    #res = es.bulk(index='emails', body=emails_json, refresh=True)
+    # res = es.bulk(index='emails', body=emails_json, refresh=True)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('directory', help='input directory')
+    main(parser.parse_args())
